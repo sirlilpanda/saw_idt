@@ -1,22 +1,25 @@
 // inputs, delay line config
 // will have to scale approperly
 
-lambda = 7.5;
+// lambda = 7.5;
+
+c = 3159.0;
+freq = 1.0e9;
 
 // inout distance
-distance = 20;
+distance = 100;
 
 // number of finger
-n_fingers = 4;
+n_fingers = 100;
 
 // should be 50-70
-finger_length = 2; 
+finger_length = 70; 
 
 // for tweaking the design
-gap = 50;
-// for tweaking the design
+gap = 0;
 
-thickness = 0;
+// for tweaking the design
+thickness = 1;
 
 // creates 1 side of the idt
 module delay_line(lambda = 1, n_fingers = 1, finger_length = 50, gap = 0, thickness = 0) {
@@ -26,7 +29,7 @@ module delay_line(lambda = 1, n_fingers = 1, finger_length = 50, gap = 0, thickn
     l4 = lambda/4;
     l8 = lambda/8;
     b = l4 + thickness;
-    f = l4 + finger_length*lambda + gap;
+    f = l4 + finger_length*lambda;
 
     points_cap = [
         [0, 0],
@@ -62,28 +65,50 @@ module delay_line(lambda = 1, n_fingers = 1, finger_length = 50, gap = 0, thickn
 
 
         for(i = [0:n_fingers]){
-            translate([b+f+gap+l2, i*l45+l2+l4/2, 0]) 
+            translate([2*b+f+gap+l2, i*l45+l2+l4/2, 0]) 
             rotate([0, 0, 180])
             polygon(points);
         }
 
         color("red")
-        translate([b+f+gap+l2, n_fingers*l45+l2+l4/2, 0]) 
+        translate([2*b+f+gap+l2, n_fingers*l45+l2+l4/2, 0]) 
         polygon(points_cap);
 
         }
 }
 
 // creates the input and output ids
-module delay_line_idt(lambda, n_fingers, distance = 100, finger_length = 50, gap = 0, thickness = 0) {
-    length_of_input = n_fingers*lambda*15/8;
-    
-    delay_line(lambda, n_fingers, finger_length, gap, thickness);
+module delay_line_idt(c, f, n_fingers, distance = 100, finger_length = 50, gap = 0, thickness = 0, impedance = 50, post_scale = false) {
 
+    local_scale = 0;
+    echo("===== DELAY LINE IDT INFO ===== ");
 
-    translate([0, length_of_input+distance*lambda, 0])
-    delay_line(lambda, n_fingers, finger_length, gap, thickness);
+    if (post_scale) {
+        lambda = c/f * post_scale;
+        length_of_input = n_fingers*lambda*15/8;
+
+        echo(str("lambda = ", lambda));
+        echo(str("lambda_scale = ", post_scale));
+        delay_line(lambda, n_fingers, finger_length, gap, thickness);
+        translate([0, length_of_input+distance*lambda, 0])
+        delay_line(lambda, n_fingers, finger_length, gap, thickness);    
+    } else {
+        lambda = 1;
+        length_of_input = n_fingers*lambda*15/8;
+        echo(str("lambda = ", lambda));
+        echo(str("lambda_scale = ", 1));
+        delay_line(lambda, n_fingers, finger_length, gap, thickness);
+        translate([0, length_of_input+distance*lambda, 0])
+        delay_line(lambda, n_fingers, finger_length, gap, thickness);
+    }
+
+    echo(str("impedance = ", impedance));
+
+    echo(str("total capacitance = ", 1/(2*PI*f*impedance)));
+
+    echo("===== DELAY LINE IDT INFO ===== ");
 }
 
 
-delay_line_idt(lambda, n_fingers, distance, finger_length, gap, thickness);
+
+delay_line_idt(c, freq, n_fingers, distance, finger_length, gap, thickness, post_scale=1e6);
